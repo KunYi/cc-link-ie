@@ -1,0 +1,9 @@
+,,
+CCIEF-BASIC Slave Sample Parameter,,
+,,
+ID,DATA,COMMENT
+1,0,IP Address
+2,0,Subnet Mask
+3,0,Default Gateway IP Address
+4,1,Occupied Station Number
+5,0,Cyclic Response Wait Time
