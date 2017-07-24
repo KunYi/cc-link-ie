@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 CC-Link IE Field Network Basic Slave Application sample code
 
-readme
+readme.txt
 
 ---------------------------------------------------------------------
 
@@ -13,4 +13,10 @@ root  -+-  library  -+-  include  ... SLMP library code header file
        +-  sample   -+-  include  ... user sample program header file
        |             +-  src      ... user sample program code file
        |
+       +-  build    -+-  linux    ... Makefile for Linux
+       |
+       |
        +-  manual   ---  User manual
+       |
+       |
+       +-  version.txt --- Version information
