@@ -87,6 +87,7 @@
 #define	CCIEF_BASIC_SLAVE_DUPLICATION_DETECT				1			/* Slave dupsication detect. */
 #define	CCIEF_BASIC_SLAVE_RESPONSE_NOT_RECEIVED				0			/* Response not receive. */
 #define	CCIEF_BASIC_SLAVE_RESPONSE_RECEIVED					1			/* Response receive. */
+#define CCIEF_BASIC_PACKET_COUNT_MAX                                                    64                      /* Number of packets to processed per main loop */
 
 /*[ Definition for CCIEF-BASIC state ]*/
 /* Master */

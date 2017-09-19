@@ -675,8 +675,8 @@ int ccief_basic_master_recv( void )
 	uint32_t		ulRecvAddr;
 	uint16_t		usRecvPortNumber;
 	struct in_addr	addr;
-	SLMP_INFO		source = { 0 };	/* SLMP Infomation for received packet */
-	int				iErrCode = 0;
+	SLMP_INFO		source;	/* SLMP Infomation for received packet */
+	int				iErrCode;
 	int				i;
 	char			Ipaddr[16];
 #ifdef _WIN32
@@ -684,6 +684,7 @@ int ccief_basic_master_recv( void )
 	uint32_t		ulMyNetAddress;
 	uint32_t		ulOtherNetAddress;
 #endif
+        uint16_t                usPacketCount = 0;      /* Number of processed packets */
 
 	/* Check the socket */
 	if ( sock == INVALID_SOCKET ) {
@@ -691,9 +692,14 @@ int ccief_basic_master_recv( void )
 	}
 
 	/* Packet receiving */
-	iErrCode = socket_recv( sock, aucRecvPacket, sizeof( aucRecvPacket ), &ulRecvAddr, &usRecvPortNumber );
-	if ( iErrCode != SOCKET_ERR_OK )
-	{
+        while ( usPacketCount <= CCIEF_BASIC_PACKET_COUNT_MAX )
+        {
+            memset( &source, 0, sizeof(SLMP_INFO) );
+            iErrCode = 0;
+
+	    iErrCode = socket_recv( sock, aucRecvPacket, sizeof( aucRecvPacket ), &ulRecvAddr, &usRecvPortNumber );
+	    if ( iErrCode != SOCKET_ERR_OK )
+	    {
 		if ( iErrCode == SOCKET_ERR_NO_RECEIVABLE )
 		{
 			return CCIEF_BASIC_MASTER_ERR_OK;
@@ -702,36 +708,36 @@ int ccief_basic_master_recv( void )
 		{
 			return iErrCode;
 		}
-	}
+	    }
 
 #ifdef _WIN32
 #elif __linux__
-	ulMyNetAddress = ( Master.ulIpAddress & Master.ulSubnetMask );
-	ulOtherNetAddress = ( ulRecvAddr & Master.ulSubnetMask );
+	    ulMyNetAddress = ( Master.ulIpAddress & Master.ulSubnetMask );
+	    ulOtherNetAddress = ( ulRecvAddr & Master.ulSubnetMask );
 
-	/* Other network broadcast break*/
-	if( ulMyNetAddress != ulOtherNetAddress )
-	{
+	    /* Other network broadcast break*/
+	    if( ulMyNetAddress != ulOtherNetAddress )
+	    {
 		return CCIEF_BASIC_MASTER_ERR_OK;
-	}
+	    }
 #endif
 
 
-	/* Sets the SLMP Information for receiving. */
-	source.pucData = aucRecvData;
+	    /* Sets the SLMP Information for receiving. */
+	    source.pucData = aucRecvData;
 
-	/* Get the SLMP Information from the request packet using the SLMP library. */
-	iErrCode = SLMP_GetSlmpInfo( &source, aucRecvPacket );
-	if ( iErrCode != SLMP_ERR_OK )
-	{
+	    /* Get the SLMP Information from the request packet using the SLMP library. */
+	    iErrCode = SLMP_GetSlmpInfo( &source, aucRecvPacket );
+	    if ( iErrCode != SLMP_ERR_OK )
+	    {
 		/* Invalid SLMP Frame. */
 		printf( "ERR : Invalid SLMP frame received!\n" );
 		return CCIEF_BASIC_MASTER_ERR_OK;
-	}
+	    }
 
-	/* Check the SLMP frame. */
-	if ( source.ulFrameType == SLMP_FTYPE_BIN_RES_ST )
-	{
+	    /* Check the SLMP frame. */
+	    if ( source.ulFrameType == SLMP_FTYPE_BIN_RES_ST )
+	    {
 		/* Response of the SLMP frame */
 		if ( source.usEndCode == SLMP_ERR_OK )
 		{
@@ -748,9 +754,9 @@ int ccief_basic_master_recv( void )
 			inet_ntop(AF_INET, &addr, Ipaddr, sizeof(Ipaddr) );
 			printf( "ERR : EndCode %04X from %s!\n", source.usEndCode, Ipaddr );
 		}
-	}
-	else
-	{
+	    }
+	    else
+	    {
 		/* Request of the SLMP frame */
 		if ( source.usCommand == SLMP_COMMAND_CYCLIC_DATA )
 		{
@@ -761,19 +767,23 @@ int ccief_basic_master_recv( void )
 				ccief_basic_master_execute_state( Master.pGroup[i], CCIEF_BASIC_EVENT_MASTER_CYCLIC_DATA_RECV );
 			}
 		}
-	}
+	    }
 
-	/* Check the error code of the master duplication */
-	if ( Master.iErrCode == CCIEF_BASIC_MASTER_ERR_MASTER_DUPLICATION )
-	{
+	    /* Check the error code of the master duplication */
+	    if ( Master.iErrCode == CCIEF_BASIC_MASTER_ERR_MASTER_DUPLICATION )
+	    {
 		return CCIEF_BASIC_MASTER_ERR_MASTER_DUPLICATION;
-	}
+	    }
 	
-	/* Check the error code of the slave duplication */
-	if ( Master.iErrCode == CCIEF_BASIC_MASTER_ERR_SLAVE_DUPLICATION )
-	{
+	    /* Check the error code of the slave duplication */
+	    if ( Master.iErrCode == CCIEF_BASIC_MASTER_ERR_SLAVE_DUPLICATION )
+	    {
 		return CCIEF_BASIC_MASTER_ERR_SLAVE_DUPLICATION;
-	}
+	    }
+
+            /* Increment the number of processed packets */
+            usPacketCount++;
+        }
 
 	return CCIEF_BASIC_MASTER_ERR_OK;
 }
