@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #elif __linux__
+#include <limits.h>
 #endif
 #include <time.h>
 #include <string.h>
@@ -92,19 +93,41 @@ void timer_main( void )
 		{
 			/* Get the difference time */
 			ulCurrent = timer_get_time();
-			/* Timeout the timer */
-			if ( Timer[i].ulTime <= ( ulCurrent - Timer[i].ulStart ))
+			if(ulCurrent < Timer[i].ulStart)
 			{
-				iStopId = Timer[i].iId;
-				if ( Timer[i].pCallbackFunc != NULL )
+				ulCurrent = ulCurrent + (((int64_t)LONG_MAX * 1000 / CLOCKS_PER_SEC) - Timer[i].ulStart);
+				/* Timeout the timer */
+				if ( Timer[i].ulTime <= ulCurrent )
 				{
-					/* Execute of the callback function */
-					Timer[i].pCallbackFunc( Timer[i].iId, Timer[i].pCallbackArg );
+					iStopId = Timer[i].iId;
+					if ( Timer[i].pCallbackFunc != NULL )
+					{
+						/* Execute of the callback function */
+						Timer[i].pCallbackFunc( Timer[i].iId, Timer[i].pCallbackArg );
+					}
+					/* Initialize of the timer */
+					if ( iStopId == Timer[i].iId )
+					{
+						Timer[i].iId = 0;
+					}
 				}
-				/* Initialize of the timer */
-				if ( iStopId == Timer[i].iId )
+			}
+			else
+			{
+				/* Timeout the timer */
+				if ( Timer[i].ulTime <= ( ulCurrent - Timer[i].ulStart ))
 				{
-					Timer[i].iId = 0;
+					iStopId = Timer[i].iId;
+					if ( Timer[i].pCallbackFunc != NULL )
+					{
+						/* Execute of the callback function */
+						Timer[i].pCallbackFunc( Timer[i].iId, Timer[i].pCallbackArg );
+					}
+					/* Initialize of the timer */
+					if ( iStopId == Timer[i].iId )
+					{
+						Timer[i].iId = 0;
+					}
 				}
 			}
 		}
@@ -183,7 +206,28 @@ uint32_t timer_get_time( void )
 {
 	uint32_t ulTime;
 
-	ulTime = (uint32_t)(((int64_t)clock() * 1000 ) / CLOCKS_PER_SEC );
+	int64_t  llClock;
+
+	/* Acquire the value from clock() */
+	llClock = clock();
+
+	/* Checks if a bit is turned ON between the 32nd bit and the 64th bit in the value of clock()  */
+	if( (llClock & TIMER_MAX_CHK_MASK) != 0 )
+	{
+		/* Turns OFF 32nd bit to 64th bit */
+		/*****************************************************************************************/
+		/* By executing the process below, in any compiling enviroments,                         */
+		/* the maximum value of llClock is less than or equal to the maximum value of long type. */
+		/*****************************************************************************************/
+		llClock = llClock & TIMER_INT_MAX_MASK;
+	}
+	else
+	{
+		/* No process */
+	}
+
+	/* Converts the value of clock() to milliseconds and casts to uint32_t */
+	ulTime = (uint32_t)(llClock * 1000 / CLOCKS_PER_SEC);
 
 	return ulTime;
 }

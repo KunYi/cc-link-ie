@@ -64,7 +64,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/route.h>
+#include <limits.h>
 #endif
+#include <time.h>
 
 /*[ Definition for sample program ]*/
 #define	USER_PARAMETER_FILE_READ			1		/* Read the parameter file */
@@ -426,9 +428,20 @@ void user_callback_recv_cyclic_data( int iCyclicState, int iOccupiedStationNumbe
 		while ( 1 )
 		{
 			ulTimerEnd = timer_get_time();
-			if ( UserSlaveParameter.ulCyclicResponseWaitTime < ( ulTimerEnd - ulTimerStart ))
+			if(ulTimerEnd < ulTimerStart)
 			{
-				break;
+				ulTimerEnd = ulTimerEnd + (((int64_t)LONG_MAX * 1000 / CLOCKS_PER_SEC) - ulTimerStart);
+				if ( UserSlaveParameter.ulCyclicResponseWaitTime < ulTimerEnd )
+				{
+					break;
+				}
+			}
+			else
+			{
+				if ( UserSlaveParameter.ulCyclicResponseWaitTime < ( ulTimerEnd - ulTimerStart ))
+				{
+					break;
+				}
 			}
 		}
 	}
@@ -895,14 +908,25 @@ void user_display_cyclic_information( void )
 	static uint32_t						ulDisplayTimerStart = 0;	/* Start time of the display timer */
 	uint32_t							ulDisplayTimerEnd;			/* End time of the display timer */
 	int64_t								llTimeData;
+	uint32_t 							ulInterval;
+
 
 	if ( ulDisplayTimerStart == 0 ) {
 		ulDisplayTimerStart = timer_get_time();
 	}
 
-	/* Check the display time. */
 	ulDisplayTimerEnd = timer_get_time();
-	if ( USER_DISPLAY_INTERVAL_TIME < ( ulDisplayTimerEnd - ulDisplayTimerStart ))
+	if(ulDisplayTimerEnd < ulDisplayTimerStart)
+	{
+		ulInterval = ulDisplayTimerEnd + (((int64_t)LONG_MAX * 1000 / CLOCKS_PER_SEC) - ulDisplayTimerStart);
+	}
+	else
+	{
+		ulInterval = ulDisplayTimerEnd - ulDisplayTimerStart;
+	}
+
+	/* Check the display time. */
+	if ( USER_DISPLAY_INTERVAL_TIME < ulInterval )
 	{
 		ulDisplayTimerStart = ulDisplayTimerEnd;
 
