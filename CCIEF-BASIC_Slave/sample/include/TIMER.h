@@ -42,6 +42,8 @@
 #define	TIMER_OK				0
 #define	TIMER_RESOURCE_NONE		(-1)
 #define	TIMER_MAX				5		/* Number of timer MAX */
+#define TIMER_INT_MAX_MASK              0x000000007FFFFFFF
+#define TIMER_MAX_CHK_MASK              0xFFFFFFFF80000000
 
 /*[ Structure for sample code ]*/
 typedef struct 

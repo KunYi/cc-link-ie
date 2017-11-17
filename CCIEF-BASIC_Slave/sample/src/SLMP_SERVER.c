@@ -56,7 +56,9 @@
 #include <Ws2tcpip.h>
 #elif __linux__
 #include <netinet/in.h>
+#include <limits.h>
 #endif
+#include <time.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -202,7 +204,14 @@ int slmp_server_initialize( SLMP_SERVER_INFO *pServerInfo, SLMP_SERVER_CALLBACK_
 void slmp_server_terminate( void )
 {
 	/* Termination of socket */
+	/* for User port */
 	socket_terminate( sock_server );
+
+	/* for CC-LinkIEF Basic port */
+	socket_terminate( sock_ccief_basic );
+
+	/* for parameter get port */
+	socket_terminate( sock_ccief_paramset );
 
 	return;
 }
@@ -1320,6 +1329,7 @@ int slmp_server_parameter_set_start( int sock, const SLMP_INFO *source, uint32_t
 	uint16_t usSendDataSize;
 	int iErrCode;
 	uint32_t ulCheckTimeout;
+	uint32_t ulCurrent;
 
 	/* Subcommand Check */
 	if ( source->usSubCommand != 0x0000 )
@@ -1333,9 +1343,18 @@ int slmp_server_parameter_set_start( int sock, const SLMP_INFO *source, uint32_t
 	/* Check the ParameterSet Flag */ 
 	if ( iParameterSetFlag == 1 )
 	{
-		/* Check the ParameterSet Timeout */ 
-		ulCheckTimeout = timer_get_time() - ulParameterSetTimer;
+		/* Get the difference time */
+		ulCurrent = timer_get_time();
 
+		if(ulCurrent < ulParameterSetTimer)
+		{
+			ulCheckTimeout = ulCurrent + (((int64_t)LONG_MAX * 1000 / CLOCKS_PER_SEC) - ulParameterSetTimer);
+		}
+		else
+		{
+			ulCheckTimeout = ulCurrent - ulParameterSetTimer;
+		}
+		/* Check the ParameterSet Timeout */
 		if ( SLMP_SERVER_SET_PARAMETER_TIMEOUT <= ulCheckTimeout )
 		{
 			/* Start ParameterSet */ 
